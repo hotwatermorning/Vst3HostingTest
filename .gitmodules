@@ -1,6 +1,6 @@
 [submodule "ext/portaudio"]
 	path = ext/portaudio
-	url = https://github.com/EddieRingle/portaudio.git
+	url = https://git.assembla.com/portaudio.git
 [submodule "ext/mirror_utf8cpp"]
 	path = ext/mirror_utf8cpp
 	url = https://github.com/staticlibs/mirror_utf8cpp.git
