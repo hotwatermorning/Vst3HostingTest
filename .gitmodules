@@ -1,0 +1,9 @@
+[submodule "ext/portaudio"]
+	path = ext/portaudio
+	url = https://github.com/EddieRingle/portaudio.git
+[submodule "ext/mirror_utf8cpp"]
+	path = ext/mirror_utf8cpp
+	url = https://github.com/staticlibs/mirror_utf8cpp.git
+[submodule "ext/vst3sdk"]
+	path = ext/vst3sdk
+	url = https://github.com/steinbergmedia/vst3sdk.git

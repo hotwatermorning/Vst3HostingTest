@@ -1,0 +1,77 @@
+// ビルド構成の設定
+if(!project.hasProperty('config')) {
+    project.metaClass.config = "Debug"
+}
+
+assert(project.config == 'Debug' || project.config == 'Release')
+
+def isWindows() {
+    return System.properties['os.name'].toLowerCase().startsWith("windows")
+}
+
+//! @param params is executable and the parameters which are passed to the executable.
+//! @param working_dir is the working directory for the executable.
+//! @param env_vars is environment variables as a list of key:value pair. this parameter may be nil.
+def execute_with_exit_code(def params, String working_dir, def env_vars = [:])
+{
+    def tmp = []
+    if(isWindows()) {
+        params = ["cmd", "/c", "chcp", "65001", "&"] + params
+        def java_opts = (env_vars.get("JAVA_OPTS", "") + " -Dfile.encoding=UTF-8")
+        env_vars << ["JAVA_OPTS": java_opts.toString()]
+    }
+
+    params.each { tmp << it.toString() }
+
+    def pb = new ProcessBuilder(tmp).redirectErrorStream(true)
+    pb.directory(file(working_dir).getAbsoluteFile())
+
+    if(env_vars) {
+        def pb_env = pb.environment()
+        env_vars.each { key, value -> pb_env.put(key, value) }
+    }
+
+    def process = pb.start()
+    process.inputStream.eachLine { println it }
+    return process.waitFor()
+}
+
+//! similar to execute_with_exit_code but this function fails if the target command ends with exit code of non zero.
+def execute(def params, String working_dir, def env_vars = [:])
+{
+    def exit_code = execute_with_exit_code(params, working_dir, env_vars)
+    assert (exit_code == 0)
+}
+
+task update_submodules {
+  doLast {
+    execute(["git", "submodule", "update", "--init", "--recursive"], "..")
+  }
+}
+
+task build_submodules {
+  dependsOn { update_submodules }
+  doLast {
+    def build_dir = "build_${project.config.toLowerCase()}"
+
+    // portaudio
+    execute(["mkdir", "-p", build_dir], "../ext/portaudio")
+    execute(["cmake", "-DPA_BUILD_EXAMPLES=ON", "-DCMAKE_BUILD_TYPE=${project.config}", ".."], "../ext/portaudio/${build_dir}")
+    execute(["make", "-j"], "../ext/portaudio/${build_dir}")
+
+    // vst3sdk
+    execute(["mkdir", "-p", build_dir], "../ext/vst3sdk/")
+    execute(["cmake", "-DCMAKE_BUILD_TYPE=${project.config}", ".."], "../ext/vst3sdk/${build_dir}")
+    execute(["make", "-j"], "../ext/vst3sdk/${build_dir}")
+  }
+}
+
+task build {
+  dependsOn { build_submodules }
+  doLast {
+    def build_dir = "build_${project.config.toLowerCase()}"
+    execute(["mkdir", "-p", build_dir], "../")
+    execute(["cmake", "-GXcode", "-DCMAKE_BUILD_TYPE=${project.config}", ".."], "../${build_dir}")
+    execute(["xcodebuild", "-configuration", project.config], "../${build_dir}")
+  }
+}
