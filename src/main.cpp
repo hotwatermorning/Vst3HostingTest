@@ -51,6 +51,7 @@
 #include "./Vst3Plugin.hpp"
 #include "./Buffer.hpp"
 #include "./StrCnv.hpp"
+#include <pluginterfaces/vst/ivstaudioprocessor.h>
 
 #define NUM_SECONDS   (4)
 #define SAMPLE_RATE   (44100)
@@ -129,13 +130,24 @@ int main(void)
     hwm::Vst3PluginFactory factory(path);
     
     auto const cmp_count = factory.GetComponentCount();
-    std::cout << "Component Count : " << cmp_count;
+    std::cout << "Component Count : " << cmp_count << std::endl;
+    std::vector<int> effect_indices;
     for(int i = 0; i < cmp_count; ++i) {
         auto const &info = factory.GetComponentInfo(i);
-        std::cout << hwm::to_utf8(info.name());
+        std::cout << hwm::to_utf8(info.name()) << ", " << hwm::to_utf8(info.category()) << std::endl;
+        
+        //! カテゴリがkVstAudioEffectClassなComponentを探索する。
+        if(info.category() == hwm::to_wstr(kVstAudioEffectClass)) {
+            effect_indices.push_back(i);
+        }
     }
     
-    auto plugin = factory.CreateByIndex(1, host_context.GetUnknownPtr());
+    if(effect_indices.empty()) {
+        std::cout << "No AudioEffects found." << std::endl;
+        return 0;
+    }
+    
+    auto plugin = factory.CreateByIndex(effect_indices[0], host_context.GetUnknownPtr());
     host_context.SetRequestToRestartHandler([&](Steinberg::int32 flags) {
         plugin->RestartComponent(flags);
     });
