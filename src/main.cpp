@@ -147,10 +147,15 @@ int main(void)
         return 0;
     }
     
-    auto plugin = factory.CreateByIndex(effect_indices[0], host_context.GetUnknownPtr());
-    host_context.SetRequestToRestartHandler([&](Steinberg::int32 flags) {
-        plugin->RestartComponent(flags);
+    std::unique_ptr<hwm::Vst3Plugin> plugin;
+    host_context.SetRequestToRestartHandler([&plugin](Steinberg::int32 flags) {
+        if(plugin) {
+            plugin->RestartComponent(flags);
+        }
     });
+    
+    plugin = factory.CreateByIndex(effect_indices[0], host_context.GetUnknownPtr());
+
 
     
     PaStreamParameters outputParameters;
